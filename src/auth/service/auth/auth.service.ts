@@ -25,9 +25,11 @@ export class AuthService {
       { nickname: nickname },
       {
         expiresIn: this.configService.get<string>(
-          'JWT_ACCESS_TOKEN_EXPIRATION_TIME',
+          'JWT_ACCESS_TOKEN_EXPIRATION_TIME'
         ),
-        secret: this.configService.get<string>('JWT_ACCESS_TOKEN_SECRET_KEY'),
+        secret: this.configService.get<string>(
+          'JWT_ACCESS_TOKEN_SECRET_KEY'
+        ),
       },
     );
 
@@ -39,8 +41,12 @@ export class AuthService {
     const token = this.jwtService.signAsync(
       { nickname: nickname },
       {
-        expiresIn: this.configService.get('JWT_REFRESH_TOKEN_EXPIRATION_TIME'),
-        secret: this.configService.get<string>('JWT_REFRESH_TOKEN_SECRET_KEY'),
+        expiresIn: this.configService.get<string>(
+          'JWT_REFRESH_TOKEN_EXPIRATION_TIME'
+        ),
+        secret: this.configService.get<string>(
+          'JWT_REFRESH_TOKEN_SECRET_KEY'
+        ),
       },
     );
 

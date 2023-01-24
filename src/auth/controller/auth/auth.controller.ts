@@ -60,15 +60,15 @@ export class AuthController {
 
   //  회원탈퇴
   @Post('/deleteUser/:loginType')
-  deleteUser(@Param('loginType') loginType: LoginType, @Body() test: Test) {
+  deleteUser(@Param('loginType') loginType: LoginType, @Body() body) {
     //  카카오 로그인 사용자인 경우
     if (loginType == 'kakao') {
-      this.authService.kakaoDeleteUser(test.id);
+      this.authService.kakaoDeleteUser(body.id);
     }
 
     //  네이버 로그인 사용자 경우
     if (loginType == 'naver') {
-      this.authService.naverDeleteUser(test.id);
+      this.authService.naverDeleteUser(body.id);
     }
   }
 }

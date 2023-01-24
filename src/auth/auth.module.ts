@@ -1,6 +1,5 @@
 import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { DynamicModule, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { UsersModule } from 'src/user/user.module';
@@ -10,7 +9,7 @@ import { KakaoAuth } from './utils/kakao.auth';
 import { NaverAuth } from './utils/naver.auth';
 
 @Module({
-  imports: [UsersModule, JwtModule, PassportModule, HttpModule, ConfigModule],
+  imports: [UsersModule, JwtModule, PassportModule, HttpModule],
   controllers: [AuthController],
   providers: [AuthService, KakaoAuth, NaverAuth],
 })
