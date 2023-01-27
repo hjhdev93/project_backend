@@ -1,7 +1,8 @@
-import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { User } from '../../user/entity/user.entity';
 import { Photo } from './Photo';
 import { Record } from './Record';
+import { Comment } from '../../comment/entity/Comment';
 
 @Entity()
 export class Post {
@@ -28,6 +29,9 @@ export class Post {
 
   @OneToMany(() => Photo, (photo) => photo.post, { cascade: true })
   photos: Photo[];
+
+  @OneToMany(() => Comment, (comment) => comment.post, { cascade: true })
+  comments: Comment[];
 
   @OneToOne(() => Record, (record) => record.post, { cascade: true })
   record: Record;
