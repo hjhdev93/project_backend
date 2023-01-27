@@ -6,6 +6,11 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { User } from './user/entity/user.entity';
 import { UsersModule } from './user/user.module';
+import { PostController } from './post/controller/post/post.controller';
+import { PostModule } from './post/post.module';
+import { Post } from './post/entity/Post';
+import { Photo } from './post/entity/Photo';
+import { Record } from './post/entity/Record';
 
 @Module({
   imports: [
@@ -16,13 +21,14 @@ import { UsersModule } from './user/user.module';
       username: 'postgres',
       password: 'password',
       database: 'project',
-      entities: [User],
+      entities: [User, Post, Photo, Record],
       synchronize: true,
     }),
     AuthModule,
     UsersModule,
+    PostModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, PostController],
   providers: [AppService],
 })
 export class AppModule {}

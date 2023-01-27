@@ -1,10 +1,12 @@
 import {
   Column,
   CreateDateColumn,
-  Entity,
+  Entity, OneToMany,
   PrimaryColumn,
-  PrimaryGeneratedColumn,
+  PrimaryGeneratedColumn
 } from 'typeorm';
+import { Post } from '../../post/entity/Post';
+
 
 export type LoginType = 'naver' | 'kakao';
 
@@ -57,6 +59,9 @@ export class User {
   })
   snsRefreshToken: string;
 
-  @CreateDateColumn()
+  @OneToMany(() => Post, (post) => post.user)
+  posts: Post[];
+
+  @CreateDateColumn({ select: false })
   createdDate: Date;
 }
