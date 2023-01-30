@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { LocalTokens } from 'src/auth/interfaces/localTokens.interface';
+import { UserInfo } from 'src/auth/interfaces/userinfo.interface';
 import { NewUser } from 'src/auth/interfaces/newUser.interface';
 import { KakaoAuth } from 'src/auth/utils/kakao.auth';
 import { NaverAuth } from 'src/auth/utils/naver.auth';
@@ -25,11 +25,9 @@ export class AuthService {
       { nickname: nickname },
       {
         expiresIn: this.configService.get<string>(
-          'JWT_ACCESS_TOKEN_EXPIRATION_TIME'
+          'JWT_ACCESS_TOKEN_EXPIRATION_TIME',
         ),
-        secret: this.configService.get<string>(
-          'JWT_ACCESS_TOKEN_SECRET_KEY'
-        ),
+        secret: this.configService.get<string>('JWT_ACCESS_TOKEN_SECRET_KEY'),
       },
     );
 
@@ -42,50 +40,40 @@ export class AuthService {
       { nickname: nickname },
       {
         expiresIn: this.configService.get<string>(
-          'JWT_REFRESH_TOKEN_EXPIRATION_TIME'
+          'JWT_REFRESH_TOKEN_EXPIRATION_TIME',
         ),
-        secret: this.configService.get<string>(
-          'JWT_REFRESH_TOKEN_SECRET_KEY'
-        ),
+        secret: this.configService.get<string>('JWT_REFRESH_TOKEN_SECRET_KEY'),
       },
     );
 
     return token;
   }
 
-  //  네이버 회원가입
-  async naverSignup(code: string, state: string): Promise<NewUser> {
-    const naverToken = await this.naverAuth.getToken(code, state);
-    const naverUserInfo = await this.naverAuth.getInfoByToken(
-      naverToken.access_token,
-    );
-
-    //  이미 회원가입된 회원이면 로그인 화면으로
-    if (await this.userService.findUserBySnsId(naverUserInfo.id)) {
-      console.log('이미 가입된 회원입니다');
-      return;
-    }
-    const newUser: NewUser = {
-      snsId: naverUserInfo.id,
-      loginType: 'naver',
-      useremail: naverUserInfo.email,
-      username: naverUserInfo.nickname,
-    };
-
-    console.log('회원가입 성공');
-    return await this.userService.createUser(newUser);
-  }
-
   //  네이버 로그인
-  async naverLogin(code: string, state: string): Promise<LocalTokens | null> {
+  async naverLogin(code: string, state: string): Promise<UserInfo | null> {
     const naverToken = await this.naverAuth.getToken(code, state);
     const naverUserInfo = await this.naverAuth.getInfoByToken(
       naverToken.access_token,
     );
 
-    const user = await this.userService.findUserBySnsId(naverUserInfo.id);
-    console.log(user);
+    let user = await this.userService.findUserBySnsId(naverUserInfo.id);
 
+    //  처음 로그인이라면 DB에 유저 정보 저장
+    if (!user) {
+      const newUser: NewUser = {
+        snsId: naverUserInfo.id,
+        loginType: 'naver',
+        useremail: naverUserInfo.email,
+        username: naverUserInfo.nickname,
+      };
+      //  유저 정보 DB에 저장
+      await this.userService.createUser(newUser);
+      user = await this.userService.findUserBySnsId(naverUserInfo.id);
+    }
+
+    console.log('로그인 체크');
+    console.log(user);
+    //  유저 정보가 이미 존재하거나, 처음 로그인하여 DB에 유저 정보가 저장되었다면 토큰 생성 및 저장
     if (user) {
       const internalAccessToken = await this.createAccessToken(
         naverUserInfo.nickname,
@@ -103,8 +91,10 @@ export class AuthService {
         naverToken.refresh_token,
       );
 
-      console.log('로그인 성공');
       return {
+        id: user.id,
+        username: user.username,
+        loginType: 'naver',
         accessToken: internalAccessToken,
         refreshToken: internalRefreshToken,
       };
@@ -116,20 +106,16 @@ export class AuthService {
 
   //  네이버 로그아웃
   async naverLogout(id: number): Promise<void> {
-    console.log('로그아웃');
     const user = await this.userService.findUserById(id);
-    console.log(user.snsAccessToken);
 
     //  access토큰이 유효하지 않다면 재발급 요청
     if (!(await this.naverAuth.verifyToken(user.snsAccessToken))) {
       const token = await this.naverAuth.renewToken(user.snsRefreshToken);
-      console.log('토큰');
-      console.log(token);
       await this.userService.renewSnsAccessTokenById(id, token.access_token);
     }
 
     //  네이버 토큰 만료 요청
-    await this.naverAuth.deleteToken(user.snsAccessToken);
+    // await this.naverAuth.logout(user.snsAccessToken);
 
     //  DB에 저장된 토큰값 만료
     await this.userService.deleteTokenById(id);
@@ -146,7 +132,7 @@ export class AuthService {
     }
 
     //  네이버 토큰 만료 요청
-    await this.naverAuth.deleteToken(user.snsAccessToken);
+    await this.naverAuth.deleteUser(user.snsAccessToken);
 
     //  DB에서 유저 정보 삭제
     await this.userService.deleteUserById(id);
@@ -154,38 +140,31 @@ export class AuthService {
     console.log('회원탈퇴 성공');
   }
 
-  //  카카오 회원가입
-  async kakaoSignup(code: string): Promise<NewUser> {
+  //  카카오 로그인
+  async kakaoLogin(code: string): Promise<UserInfo | null> {
     const kakaoToken = await this.kakaoAuth.getToken(code);
     const kakaoUserInfo = await this.kakaoAuth.getInfoByToken(
       kakaoToken.access_token,
     );
 
-    if (await this.userService.findUserBySnsId(kakaoUserInfo.id)) {
-      console.log('이미 회원가입된 계정입니다!');
-      return;
+    const isUser = await this.userService.findUserBySnsId(kakaoUserInfo.id);
+
+    //  처음 로그인이라면 DB에 유저 정보 저장
+    if (!isUser) {
+      const newUser: NewUser = {
+        snsId: kakaoUserInfo.id,
+        loginType: 'kakao',
+        useremail: kakaoUserInfo.email,
+        username: kakaoUserInfo.nickname,
+      };
+
+      console.log('회원가입 성공');
+      await this.userService.createUser(newUser);
     }
 
-    const newUser: NewUser = {
-      snsId: kakaoUserInfo.id,
-      loginType: 'kakao',
-      useremail: kakaoUserInfo.email,
-      username: kakaoUserInfo.nickname,
-    };
-
-    console.log('회원가입 성공');
-    return await this.userService.createUser(newUser);
-  }
-
-  //  카카오 로그인
-  async kakaoLogin(code: string): Promise<LocalTokens | null> {
-    const kakaoToken = await this.kakaoAuth.getToken(code);
-    const kakaoUserInfo = await this.kakaoAuth.getInfoByToken(
-      kakaoToken.access_token,
-    );
-
     const user = await this.userService.findUserBySnsId(kakaoUserInfo.id);
-    //  카카오에서 건내준 id값이 이미 DB에 있다면 토큰 발급하여 리턴
+
+    //  유저 정보가 이미 존재하거나, 처음 로그인하여 DB에 유저 정보가 저장되었다면 토큰 생성 및 저장
     if (user) {
       const internalAccessToken = await this.createAccessToken(
         kakaoUserInfo.nickname,
@@ -205,6 +184,9 @@ export class AuthService {
 
       console.log('로그인 성공');
       return {
+        id: user.id,
+        username: user.username,
+        loginType: 'kakao',
         accessToken: internalAccessToken,
         refreshToken: internalRefreshToken,
       };
@@ -241,7 +223,7 @@ export class AuthService {
   }
 
   //  카카오 회원탈퇴
-  async kakaoDeleteUser(id: number): Promise<void> {
+  async kakaoDeleteUser(id: number): Promise<number> {
     const user = await this.userService.findUserById(id);
 
     if (!user) {
@@ -264,11 +246,13 @@ export class AuthService {
     }
 
     //  카카오에 회원탈퇴 요청, 성공시 삭제한 유저의 id리턴
-    const deletedUserId = await this.kakaoAuth.deleteUser(user.snsAccessToken);
+    await this.kakaoAuth.deleteUser(user.snsAccessToken);
 
     //  DB에서 유저 삭제
     await this.userService.deleteUserById(id);
 
     console.log('회원탈퇴 성공');
+
+    return id;
   }
 }
