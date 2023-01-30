@@ -83,35 +83,26 @@ export class NaverAuth {
     return data;
   }
 
-  // //  로그아웃 -> 사용자 access & refresh 토큰 모두 만료
-  // async logout(refresh_token: string) {
-  //   const { data } = await lastValueFrom(
-  //     this.httpService.get(
-  //       `${this.configService.get<string>(
-  //         'NAVER_LOGOUT_URL',
-  //       )}&client_id=${this.configService.get<string>(
-  //         'NAVER_CLIENT_ID',
-  //       )}&client_secret=${this.configService.get<string>(
-  //         'NAVER_CLIENT_SECRET',
-  //       )}&access_token=${refresh_token}`,
-  //     ),
-  //   );
-  //   console.log(data);
-  //   return data;
-  // }
+  //  로그아웃 -> 사용자 access & refresh 토큰 모두 만료
+  async logout(refresh_token: string) {
+    const { data } = await lastValueFrom(
+      this.httpService.get(
+        `${this.configService.get<string>(
+          'NAVER_LOGOUT_URL',
+        )}&client_id=${this.configService.get<string>(
+          'NAVER_CLIENT_ID',
+        )}&client_secret=${this.configService.get<string>(
+          'NAVER_CLIENT_SECRET',
+        )}&access_token=${refresh_token}`,
+      ),
+    );
+    console.log(data);
+    return data;
+  }
 
   //  회원탈퇴
   async deleteUser(access_token: string) {
     console.log(access_token);
-    console.log(
-      `${this.configService.get<string>(
-        'NAVER_DELETE_ACCOUNT_URL',
-      )}&client_id=${this.configService.get<string>(
-        'NAVER_CLIENT_ID',
-      )}&client_secret=${this.configService.get<string>(
-        'NAVER_CLIENT_SECRET',
-      )}&access_token=${access_token}`,
-    );
     const { data } = await lastValueFrom(
       this.httpService.get(
         `${this.configService.get<string>(
@@ -123,7 +114,7 @@ export class NaverAuth {
         )}&access_token=${access_token}&service_provider=NAVER`,
       ),
     );
-    console.log('naverAuth');
+
     console.log(data);
     return data;
   }
