@@ -1,7 +1,7 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, lastValueFrom } from 'rxjs';
 import { NaverRenewTokenInfo } from '../interfaces/naverRenewTokenInfo.interface';
 import { NaverTokenInfo } from '../interfaces/naverTokenInfo.interface';
 import { NaverUserInfoByToken } from '../interfaces/naverUserInfoByToken.interface';
@@ -21,7 +21,7 @@ export class NaverAuth {
         `${this.configService.get<string>(
           'NAVER_TOKEN_REQUEST_URL',
         )}&client_id=${this.configService.get<string>(
-          'NAVER_CLINET_ID',
+          'NAVER_CLIENT_ID',
         )}&client_secret=${this.configService.get<string>(
           'NAVER_CLIENT_SECRET',
         )}=${code}&state=${state}`,
@@ -83,9 +83,9 @@ export class NaverAuth {
     return data;
   }
 
-  //  회원탈퇴, 로그아웃 -> 모든 토큰 만료 처리
-  async deleteToken(access_token: string) {
-    const { data } = await firstValueFrom(
+  //  로그아웃 -> 사용자 access & refresh 토큰 모두 만료
+  async logout(refresh_token: string) {
+    const { data } = await lastValueFrom(
       this.httpService.get(
         `${this.configService.get<string>(
           'NAVER_LOGOUT_URL',
@@ -93,10 +93,29 @@ export class NaverAuth {
           'NAVER_CLIENT_ID',
         )}&client_secret=${this.configService.get<string>(
           'NAVER_CLIENT_SECRET',
-        )}&access_token=${access_token}`,
+        )}&access_token=${refresh_token}`,
+      ),
+    );
+    console.log(data);
+    return data;
+  }
+
+  //  회원탈퇴
+  async deleteUser(access_token: string) {
+    console.log(access_token);
+    const { data } = await lastValueFrom(
+      this.httpService.get(
+        `${this.configService.get<string>(
+          'NAVER_DELETE_ACCOUNT_URL',
+        )}&client_id=${this.configService.get<string>(
+          'NAVER_CLIENT_ID',
+        )}&client_secret=${this.configService.get<string>(
+          'NAVER_CLIENT_SECRET',
+        )}&access_token=${access_token}&service_provider=NAVER`,
       ),
     );
 
+    console.log(data);
     return data;
   }
 }

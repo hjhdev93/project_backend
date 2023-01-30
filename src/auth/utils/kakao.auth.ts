@@ -86,17 +86,15 @@ export class KakaoAuth {
   //  로그아웃 -> 사용자 access & refresh 토큰 모두 만료
   async logout(access_token: string): Promise<number> {
     console.log('로그아웃');
-    console.log(access_token);
     const { data } = await lastValueFrom(
       this.httpService.post(
         `${this.configService.get<string>('KAKAO_LOGOUT_URL')}`,
-        {},
+        '',
         {
           headers: { Authorization: `Bearer ${access_token}` },
         },
       ),
     );
-
     console.log(data);
     return data;
   }
@@ -106,7 +104,7 @@ export class KakaoAuth {
     const { data } = await lastValueFrom(
       this.httpService.post(
         `${this.configService.get<string>('KAKAO_DELETE_ACCOUNT_URL')}`,
-        {},
+        '',
         {
           headers: { Authorization: `Bearer ${access_token}` },
         },
